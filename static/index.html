@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoGrab</title>
+    <meta name="description" content="Download any video from any website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Background glow effects -->
+        <div class="bg-glow bg-glow-1"></div>
+        <div class="bg-glow bg-glow-2"></div>
+
+        <div class="container">
+            <!-- Header -->
+            <header class="header">
+                <div class="logo">
+                    <span class="logo-icon">▶</span>
+                    <div>
+                        <h1>VideoGrab</h1>
+                        <p class="tagline">Download any video from any website</p>
+                    </div>
+                </div>
+                <div class="tools-status" id="toolsStatus"></div>
+            </header>
+
+            <!-- Input Section -->
+            <section class="input-section">
+                <div class="input-card">
+                    <div class="url-group">
+                        <label for="urlInput">Video URL</label>
+                        <div class="url-row">
+                            <div class="url-input-wrap">
+                                <span class="url-icon" id="urlIcon">◉</span>
+                                <input type="url" id="urlInput" placeholder="https://youtube.com/watch?v=..." autocomplete="off" spellcheck="false">
+                                <span class="url-site" id="urlSite"></span>
+                            </div>
+                            <button class="btn btn-paste" id="pasteBtn" title="Paste from clipboard">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="path-group">
+                        <label for="pathInput">Save to</label>
+                        <div class="path-row">
+                            <input type="text" id="pathInput" placeholder="Download folder path">
+                            <button class="btn btn-folder" id="browseBtn" title="Browse for folder">📂</button>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button class="btn btn-download" id="downloadBtn">
+                            <span class="btn-icon">⬇</span>
+                            Download
+                        </button>
+                        <label class="cookie-toggle">
+                            <input type="checkbox" id="cookieCheck">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Browser cookies</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Downloads Section -->
+            <section class="downloads-section">
+                <div class="section-header">
+                    <h2>Downloads</h2>
+                    <button class="btn btn-clear" id="clearBtn">Clear done</button>
+                </div>
+                <div class="downloads-list" id="downloadsList">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">⬇</div>
+                        <p>Paste a video URL to get started</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

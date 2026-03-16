@@ -1,3 +1,12 @@
 config.json
 history.json
 __pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.vscode/
+.idea/
