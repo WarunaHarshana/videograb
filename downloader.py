@@ -438,6 +438,7 @@ def _start_single_download(url, save_path, use_cookies, fmt, cookie_browser,
         "icon": icon,
         "site": site,
         "url": url,
+        "savePath": save_path,
     }
 
 
@@ -582,12 +583,10 @@ def open_folder():
     path = data.get("path", "").strip()
 
     if path:
-        path = os.path.normpath(path)
-        # Prevent path traversal: resolve to real path and check it's under home
-        real = os.path.realpath(path)
-        home = os.path.realpath(str(Path.home()))
-        if not real.startswith(home):
+        # Prevent path traversal before normalization
+        if ".." in path.replace("\\", "/").split("/"):
             return jsonify({"error": "Access denied"}), 403
+        path = os.path.normpath(path)
     else:
         path = get_save_path()
 

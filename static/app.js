@@ -407,7 +407,7 @@ async function startSingleDownload() {
     updateActiveCount(1);
 
     // Start listening for progress
-    listenProgress(data.id, opts.savePath);
+    listenProgress(data.id, data.savePath || opts.savePath);
 
     // Request notification permission on first download
     requestNotificationPermission();
@@ -459,7 +459,7 @@ async function startBatchDownload() {
             started++;
             createCard(result);
             updateActiveCount(1);
-            listenProgress(result.id, opts.savePath);
+            listenProgress(result.id, result.savePath || opts.savePath);
         }
     }
 
@@ -676,13 +676,18 @@ async function cancelDownload(dlId) {
 // ── Open save folder ──
 async function openSaveFolder(path) {
     try {
-        await fetch("/api/open-folder", {
+        const res = await fetch("/api/open-folder", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ path }),
         });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Could not open folder", "error");
+        }
     } catch (e) {
         console.error("Failed to open folder:", e);
+        showToast("Could not open folder", "error");
     }
 }
 
