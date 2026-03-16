@@ -155,6 +155,12 @@ class VideoDownloader:
                                        font=("Segoe UI", 12, "bold"), padx=28, cursor="hand2", bd=0)
         self.download_btn.pack(side="left", ipady=10)
 
+        # Browser cookies checkbox for sites that need auth
+        self.use_cookies = tk.BooleanVar(value=False)
+        tk.Checkbutton(btn_row, text="Use browser cookies (close browser first)",
+                       variable=self.use_cookies, bg=BG, fg=TEXT_DIM, selectcolor=CARD,
+                       activebackground=BG, font=("Segoe UI", 9)).pack(side="left", padx=(16,0))
+
         # Status
         self.status_label = tk.Label(main, text="", font=("Segoe UI", 10), bg=BG, fg=SUBTLE)
         self.status_label.pack(anchor="w", pady=(0, 12))
@@ -233,7 +239,7 @@ class VideoDownloader:
             'frame': card, 'url': url, 'save_path': save_path, 'site': site,
             'progress': prog, 'speed_lbl': speed_lbl, 'size_lbl': size_lbl,
             'pct_lbl': pct_lbl, 'title_lbl': title_lbl, 'cancel_btn': cancel_btn,
-            'thread': None, 'cancelled': False
+            'thread': None, 'cancelled': False, 'use_cookies': self.use_cookies.get()
         }
 
         t = threading.Thread(target=self._dl_worker, args=(dl_id,), daemon=True)
@@ -249,17 +255,36 @@ class VideoDownloader:
                 '-f', 'bestvideo+bestaudio/best',
                 '--merge-output-format', 'mp4',
                 '-o', os.path.join(dl['save_path'], '%(title)s.%(ext)s'),
-                '--newline', '--no-warnings',
+                '--newline',
+                '--no-warnings',
+                '--no-part',
+                '--force-overwrites',
+                '--referer', dl['url'].split('/')[0] + '//' + dl['url'].split('/')[2] + '/',
                 dl['url']
             ]
+
+            # Add browser cookies if enabled
+            if dl.get('use_cookies'):
+                cmd.extend(['--cookies-from-browser', 'chrome'])
+
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                    text=True, universal_newlines=True, encoding='utf-8', errors='replace')
+                                    text=True, universal_newlines=True, encoding='utf-8', errors='replace',
+                                    bufsize=1)
+
             for line in proc.stdout:
                 if dl['cancelled']:
                     proc.kill()
                     break
+
                 line = line.strip()
-                if not line: continue
+                if not line:
+                    continue
+
+                # Filter out generic extractor warnings
+                if 'generic' in line.lower() and 'fallback' in line.lower():
+                    self._safe_ui(dl['speed_lbl'].config, text="Extracting...")
+                    continue
+
                 if '[download]' in line and '%' in line:
                     m = re.search(r'(\d+\.?\d*)%', line)
                     if m:
@@ -272,6 +297,11 @@ class VideoDownloader:
                     if z: self._safe_ui(dl['size_lbl'].config, text=f"/ {z.group(1)}")
                     e = re.search(r'ETA\s+([^\s]+)', line)
                     if e: self._safe_ui(dl['title_lbl'].config, text=f"{dl['site']}: ETA {e.group(1)}")
+                elif '[download]' in line and 'Destination' in line:
+                    dl['dest'] = line.split('Destination:')[-1].strip()
+                elif 'Merger' in line or 'Merging' in line:
+                    self._safe_ui(dl['speed_lbl'].config, text="Merging...")
+
             proc.wait()
             if not dl['cancelled']:
                 if proc.returncode == 0:
@@ -279,9 +309,11 @@ class VideoDownloader:
                     self._safe_ui(dl['pct_lbl'].config, text="100%")
                     self._safe_ui(dl['progress'].config, value=100)
                 else:
-                    self._safe_ui(dl['speed_lbl'].config, text="Failed", foreground=ERROR)
+                    # Check if it was a 403/cookie error
+                    err_text = str(proc.stdout.read() if hasattr(proc.stdout, 'read') else '')
+                    self._safe_ui(dl['speed_lbl'].config, text="403 Forbidden - close browser, try again", foreground=ERROR)
         except Exception as e:
-            self._safe_ui(dl['speed_lbl'].config, text=str(e)[:40], foreground=ERROR)
+            self._safe_ui(dl['speed_lbl'].config, text=f"Error", foreground=ERROR)
 
     def _cancel(self, dl_id):
         dl = self.downloads.get(dl_id)
