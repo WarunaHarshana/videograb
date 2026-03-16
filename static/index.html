@@ -52,16 +52,68 @@
                         </div>
                     </div>
 
+                    <div class="options-row">
+                        <div class="option-group">
+                            <label for="formatSelect">Quality</label>
+                            <select id="formatSelect">
+                                <option value="best">Best</option>
+                                <option value="1080">1080p</option>
+                                <option value="720">720p</option>
+                                <option value="480">480p</option>
+                                <option value="audio">Audio only (MP3)</option>
+                            </select>
+                        </div>
+                        <label class="cookie-toggle">
+                            <input type="checkbox" id="cookieCheck">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Cookies from</span>
+                            <select id="cookieBrowser" class="browser-select">
+                                <option value="chrome">Chrome</option>
+                                <option value="firefox">Firefox</option>
+                                <option value="edge">Edge</option>
+                                <option value="opera">Opera</option>
+                                <option value="safari">Safari</option>
+                                <option value="brave">Brave</option>
+                                <option value="vivaldi">Vivaldi</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="toggles-row">
+                        <label class="cookie-toggle">
+                            <input type="checkbox" id="subsCheck">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Subtitles</span>
+                        </label>
+                        <select id="subLangSelect" class="browser-select" style="display:none">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ru">Russian</option>
+                            <option value="all">All languages</option>
+                        </select>
+                        <label class="cookie-toggle" title="Skip SSL certificate verification (use for sites with cert issues)">
+                            <input type="checkbox" id="noCertCheck">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Skip SSL verify</span>
+                        </label>
+                        <label class="cookie-toggle" title="Download all videos in a playlist">
+                            <input type="checkbox" id="playlistCheck">
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Full playlist</span>
+                        </label>
+                    </div>
+
                     <div class="action-row">
                         <button class="btn btn-download" id="downloadBtn">
                             <span class="btn-icon">⬇</span>
                             Download
                         </button>
-                        <label class="cookie-toggle">
-                            <input type="checkbox" id="cookieCheck">
-                            <span class="toggle-slider"></span>
-                            <span class="toggle-label">Browser cookies</span>
-                        </label>
                     </div>
                 </div>
             </section>
@@ -69,8 +121,11 @@
             <!-- Downloads Section -->
             <section class="downloads-section">
                 <div class="section-header">
-                    <h2>Downloads</h2>
-                    <button class="btn btn-clear" id="clearBtn">Clear done</button>
+                    <h2>Downloads <span class="active-count" id="activeCount" style="display:none">0</span></h2>
+                    <div class="header-actions">
+                        <button class="btn btn-history" id="historyBtn" title="View history">History</button>
+                        <button class="btn btn-clear" id="clearBtn">Clear done</button>
+                    </div>
                 </div>
                 <div class="downloads-list" id="downloadsList">
                     <div class="empty-state" id="emptyState">
@@ -78,6 +133,15 @@
                         <p>Paste a video URL to get started</p>
                     </div>
                 </div>
+            </section>
+
+            <!-- History Panel -->
+            <section class="history-section" id="historySection" style="display:none">
+                <div class="section-header">
+                    <h2>History</h2>
+                    <button class="btn btn-clear" id="closeHistoryBtn">Back</button>
+                </div>
+                <div class="history-list" id="historyList"></div>
             </section>
         </div>
     </div>
