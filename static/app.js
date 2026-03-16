@@ -1,10 +1,12 @@
 // ══════════════════════════════════════
-//  VideoGrab v4.0 — Frontend Logic
+//  VideoGrab v4.1 — Frontend Logic
 // ══════════════════════════════════════
 
 const $ = (sel) => document.querySelector(sel);
 const downloadCards = {};
 let activeCount = 0;
+let batchMode = false;
+let historyData = [];
 
 // ── Init ──
 document.addEventListener("DOMContentLoaded", async () => {
@@ -18,6 +20,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Failed to load info:", e);
     }
 
+    // Theme
+    initTheme();
+
     // Event listeners
     $("#urlInput").addEventListener("input", onUrlChange);
     $("#urlInput").addEventListener("keydown", (e) => {
@@ -30,11 +35,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#clearBtn").addEventListener("click", clearCompleted);
     $("#historyBtn").addEventListener("click", toggleHistory);
     $("#closeHistoryBtn").addEventListener("click", toggleHistory);
+    $("#batchToggle").addEventListener("click", toggleBatchMode);
+    $("#settingsToggle").addEventListener("click", toggleSettings);
+    $("#themeBtn").addEventListener("click", toggleTheme);
+    $("#historySearch").addEventListener("input", filterHistory);
+    $("#exportHistoryBtn").addEventListener("click", exportHistory);
 
-    // Subtitle language toggle visibility
-    $("#subsCheck").addEventListener("change", () => {
-        $("#subLangSelect").style.display = $("#subsCheck").checked ? "" : "none";
-    });
+    // Keyboard shortcuts
+    document.addEventListener("keydown", handleKeyboard);
 
     // Drag-and-drop support
     setupDragDrop();
@@ -45,6 +53,94 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Focus URL input
     $("#urlInput").focus();
 });
+
+// ── Theme ──
+function initTheme() {
+    const saved = localStorage.getItem("videograb-theme");
+    if (saved === "light") {
+        document.documentElement.classList.add("light-theme");
+        $("#themeBtn").textContent = "☀️";
+    }
+}
+
+function toggleTheme() {
+    const isLight = document.documentElement.classList.toggle("light-theme");
+    localStorage.setItem("videograb-theme", isLight ? "light" : "dark");
+    $("#themeBtn").textContent = isLight ? "☀️" : "🌙";
+}
+
+// ── Keyboard Shortcuts ──
+function handleKeyboard(e) {
+    // Ctrl+Enter — start download
+    if (e.ctrlKey && e.key === "Enter") {
+        e.preventDefault();
+        startDownload();
+        return;
+    }
+    // Ctrl+Shift+H — toggle history
+    if (e.ctrlKey && e.shiftKey && e.key === "H") {
+        e.preventDefault();
+        toggleHistory();
+        return;
+    }
+    // Escape — close panels
+    if (e.key === "Escape") {
+        const histSection = $("#historySection");
+        if (histSection.style.display !== "none") {
+            toggleHistory();
+        }
+        const settingsPanel = $("#settingsPanel");
+        if (settingsPanel.style.display !== "none") {
+            toggleSettings();
+        }
+    }
+}
+
+// ── Batch Mode ──
+function toggleBatchMode() {
+    batchMode = !batchMode;
+    const btn = $("#batchToggle");
+    const singleRow = $("#singleUrlRow");
+    const batchRow = $("#batchUrlRow");
+
+    btn.classList.toggle("active", batchMode);
+    singleRow.style.display = batchMode ? "none" : "";
+    batchRow.style.display = batchMode ? "" : "none";
+
+    if (batchMode) {
+        $("#batchUrlInput").focus();
+    } else {
+        $("#urlInput").focus();
+    }
+}
+
+// ── Settings Panel ──
+function toggleSettings() {
+    const panel = $("#settingsPanel");
+    const arrow = $("#settingsArrow");
+    const isVisible = panel.style.display !== "none";
+    panel.style.display = isVisible ? "none" : "";
+    arrow.textContent = isVisible ? "▶" : "▼";
+}
+
+// ── Toast Notifications ──
+function showToast(message, type = "info") {
+    const container = $("#toastContainer");
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+
+    // Trigger animation
+    requestAnimationFrame(() => toast.classList.add("show"));
+
+    // Auto-dismiss
+    setTimeout(() => {
+        toast.classList.remove("show");
+        toast.classList.add("hide");
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
 
 // ── Drag & Drop ──
 function setupDragDrop() {
@@ -75,14 +171,18 @@ function setupDragDrop() {
         dragCounter = 0;
         app.classList.remove("drag-over");
 
-        // Check for URL in text/uri-list or plain text
         const uriList = e.dataTransfer.getData("text/uri-list");
         const text = e.dataTransfer.getData("text/plain");
         const url = uriList || text;
 
         if (url && /^https?:\/\//i.test(url.trim())) {
-            $("#urlInput").value = url.trim();
-            onUrlChange();
+            if (batchMode) {
+                const ta = $("#batchUrlInput");
+                ta.value = (ta.value ? ta.value + "\n" : "") + url.trim();
+            } else {
+                $("#urlInput").value = url.trim();
+                onUrlChange();
+            }
             startDownload();
         }
     });
@@ -90,16 +190,21 @@ function setupDragDrop() {
 
 // ── Global Paste (Ctrl+V anywhere on page) ──
 function onGlobalPaste(e) {
-    // Don't intercept if user is typing in an input
     const tag = document.activeElement?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
     const text = e.clipboardData?.getData("text/plain")?.trim();
     if (text && /^https?:\/\//i.test(text)) {
         e.preventDefault();
-        $("#urlInput").value = text;
-        onUrlChange();
-        $("#urlInput").focus();
+        if (batchMode) {
+            const ta = $("#batchUrlInput");
+            ta.value = (ta.value ? ta.value + "\n" : "") + text;
+            ta.focus();
+        } else {
+            $("#urlInput").value = text;
+            onUrlChange();
+            $("#urlInput").focus();
+        }
     }
 }
 
@@ -138,7 +243,6 @@ function renderTools(tools) {
 }
 
 // ── URL Detection ──
-// Must stay in sync with detect_type() in downloader.py
 function detectSite(url) {
     const u = url.toLowerCase();
     if (u.includes("youtube") || u.includes("youtu.be")) return ["▶", "YouTube"];
@@ -179,13 +283,22 @@ async function pasteUrl() {
     try {
         const text = await navigator.clipboard.readText();
         if (text) {
-            $("#urlInput").value = text.trim();
-            onUrlChange();
-            $("#urlInput").focus();
+            if (batchMode) {
+                const ta = $("#batchUrlInput");
+                ta.value = (ta.value ? ta.value + "\n" : "") + text.trim();
+                ta.focus();
+            } else {
+                $("#urlInput").value = text.trim();
+                onUrlChange();
+                $("#urlInput").focus();
+            }
         }
     } catch {
-        // Fallback: try using execCommand
-        $("#urlInput").focus();
+        if (batchMode) {
+            $("#batchUrlInput").focus();
+        } else {
+            $("#urlInput").focus();
+        }
         document.execCommand("paste");
     }
 }
@@ -222,66 +335,138 @@ async function openFolder() {
     }
 }
 
+// ── Collect options from UI ──
+function getOptions() {
+    return {
+        savePath: $("#pathInput").value.trim(),
+        useCookies: $("#cookieCheck").checked,
+        format: $("#formatSelect").value,
+        cookieBrowser: $("#cookieBrowser").value,
+        writeSubs: $("#subsCheck").checked,
+        subLangs: $("#subLangSelect").value,
+        noCertCheck: $("#noCertCheck").checked,
+        playlist: $("#playlistCheck").checked,
+        speedLimit: $("#speedLimitSelect").value,
+        outputFormat: $("#outputFormatSelect").value,
+        proxy: $("#proxyInput").value.trim(),
+    };
+}
+
 // ── Start Download ──
 async function startDownload() {
-    const url = $("#urlInput").value.trim();
-    const savePath = $("#pathInput").value.trim();
-    const useCookies = $("#cookieCheck").checked;
-    const format = $("#formatSelect").value;
-    const cookieBrowser = $("#cookieBrowser").value;
-    const writeSubs = $("#subsCheck").checked;
-    const subLangs = $("#subLangSelect").value;
-    const noCertCheck = $("#noCertCheck").checked;
-    const playlist = $("#playlistCheck").checked;
+    const btn = $("#downloadBtn");
+    btn.disabled = true;
 
+    try {
+        if (batchMode) {
+            await startBatchDownload();
+        } else {
+            await startSingleDownload();
+        }
+    } catch (e) {
+        showToast("Failed to start download: " + e.message, "error");
+    }
+
+    btn.disabled = false;
+}
+
+async function startSingleDownload() {
+    const url = $("#urlInput").value.trim();
     if (!url) {
         shakeElement($("#urlInput").parentElement);
         return;
     }
 
-    const btn = $("#downloadBtn");
-    btn.disabled = true;
+    const opts = getOptions();
 
-    try {
-        const res = await fetch("/api/download", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url, savePath, useCookies, format, cookieBrowser, writeSubs, subLangs, noCertCheck, playlist }),
-        });
+    const res = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, ...opts }),
+    });
 
-        const data = await res.json();
+    const data = await res.json();
 
-        if (!res.ok) {
-            alert(data.error || "Download failed");
-            btn.disabled = false;
-            return;
-        }
-
-        // Clear URL
-        $("#urlInput").value = "";
-        onUrlChange();
-
-        // Hide empty state
-        const empty = $("#emptyState");
-        if (empty) empty.style.display = "none";
-
-        // Create download card
-        createCard(data);
-
-        // Track active count
-        updateActiveCount(1);
-
-        // Start listening for progress
-        listenProgress(data.id, savePath);
-
-        // Request notification permission on first download
-        requestNotificationPermission();
-
-    } catch (e) {
-        alert("Failed to start download: " + e.message);
+    if (!res.ok) {
+        showToast(data.error || "Download failed", "error");
+        return;
     }
 
-    btn.disabled = false;
+    // Clear URL
+    $("#urlInput").value = "";
+    onUrlChange();
+
+    // Hide empty state
+    const empty = $("#emptyState");
+    if (empty) empty.style.display = "none";
+
+    // Create download card
+    createCard(data);
+
+    // Track active count
+    updateActiveCount(1);
+
+    // Start listening for progress
+    listenProgress(data.id, opts.savePath);
+
+    // Request notification permission on first download
+    requestNotificationPermission();
+}
+
+async function startBatchDownload() {
+    const text = $("#batchUrlInput").value.trim();
+    if (!text) {
+        shakeElement($("#batchUrlInput"));
+        return;
+    }
+
+    const urls = text.split("\n").map(u => u.trim()).filter(u => u && /^https?:\/\//i.test(u));
+    if (urls.length === 0) {
+        showToast("No valid URLs found", "error");
+        return;
+    }
+
+    const opts = getOptions();
+
+    const res = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls, ...opts }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        showToast(data.error || "Batch download failed", "error");
+        return;
+    }
+
+    // Clear batch input
+    $("#batchUrlInput").value = "";
+
+    // Hide empty state
+    const empty = $("#emptyState");
+    if (empty) empty.style.display = "none";
+
+    // Process results
+    let started = 0;
+    let errors = 0;
+    for (const result of (data.results || [])) {
+        if (result.error) {
+            errors++;
+            showToast(`${result.url.substring(0, 40)}... — ${result.error}`, "warning");
+        } else {
+            started++;
+            createCard(result);
+            updateActiveCount(1);
+            listenProgress(result.id, opts.savePath);
+        }
+    }
+
+    if (started > 0) showToast(`Started ${started} download(s)`, "success");
+    if (errors > 0) showToast(`${errors} URL(s) skipped`, "warning");
+
+    requestNotificationPermission();
 }
 
 // ── Create Card ──
@@ -313,7 +498,6 @@ function createCard({ id, icon, site, url }) {
         </div>
     `;
 
-    // Set text content safely (no innerHTML for user-controlled data)
     card.querySelector(".dl-site-icon").textContent = icon;
     card.querySelector(".dl-site-name").textContent = site;
     card.querySelector(".dl-title").textContent = shortUrl;
@@ -356,7 +540,7 @@ function listenProgress(dlId, savePath) {
                     }
                     const statusEl = $(`#status-${dlId}`);
                     if (statusEl) statusEl.textContent = "Downloading";
-                    retryCount = 0; // reset retries on successful data
+                    retryCount = 0;
                     break;
                 }
 
@@ -395,11 +579,9 @@ function listenProgress(dlId, savePath) {
                         statusEl.textContent = "Done ✓";
                         statusEl.classList.add("success");
                     }
-                    // Hide cancel, show actions
                     const cancelBtn = $(`#dl-${dlId} .btn-cancel`);
                     if (cancelBtn) cancelBtn.style.display = "none";
 
-                    // Add actions row
                     const card = $(`#dl-${dlId}`);
                     if (card) {
                         const actions = document.createElement("div");
@@ -412,10 +594,9 @@ function listenProgress(dlId, savePath) {
                         card.appendChild(actions);
                     }
 
-                    // Notification
                     showNotification("Download complete", title || "Video downloaded");
+                    showToast(`Downloaded: ${title || "video"}`, "success");
 
-                    // Mark as complete
                     updateActiveCount(-1);
                     if (downloadCards[dlId]) downloadCards[dlId].dataset.finished = "true";
                     source.close();
@@ -432,6 +613,7 @@ function listenProgress(dlId, savePath) {
                     }
                     const cancelBtn = $(`#dl-${dlId} .btn-cancel`);
                     if (cancelBtn) cancelBtn.style.display = "none";
+                    showToast(evt.data.message, "error");
                     updateActiveCount(-1);
                     if (downloadCards[dlId]) downloadCards[dlId].dataset.finished = "true";
                     source.close();
@@ -477,7 +659,6 @@ async function cancelDownload(dlId) {
 
         updateActiveCount(-1);
 
-        // Animate card removal
         const card = $(`#dl-${dlId}`);
         if (card) {
             card.classList.add("removing");
@@ -549,54 +730,85 @@ async function loadHistory() {
 
     try {
         const res = await fetch("/api/history");
-        const history = await res.json();
-
-        if (!history.length) {
-            list.innerHTML = '<div class="history-empty">No downloads yet</div>';
-            return;
-        }
-
-        list.innerHTML = "";
-        // Show newest first
-        for (const entry of history.reverse()) {
-            const item = document.createElement("div");
-            item.className = `history-item history-${entry.status}`;
-
-            const time = new Date(entry.time);
-            const timeStr = time.toLocaleDateString() + " " + time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-            const titleEl = document.createElement("span");
-            titleEl.className = "history-title";
-            titleEl.textContent = entry.title || entry.url;
-            titleEl.title = entry.url;
-
-            const statusEl = document.createElement("span");
-            statusEl.className = `history-status history-status-${entry.status}`;
-            statusEl.textContent = entry.status === "success" ? "✓" : entry.status === "failed" ? "✗" : "!";
-
-            const timeEl = document.createElement("span");
-            timeEl.className = "history-time";
-            timeEl.textContent = timeStr;
-
-            item.appendChild(statusEl);
-            item.appendChild(titleEl);
-            item.appendChild(timeEl);
-
-            // Click to re-download
-            item.style.cursor = "pointer";
-            item.title = "Click to download again";
-            item.addEventListener("click", () => {
-                $("#urlInput").value = entry.url;
-                onUrlChange();
-                toggleHistory();
-                $("#urlInput").focus();
-            });
-
-            list.appendChild(item);
-        }
+        historyData = await res.json();
+        renderHistory(historyData);
     } catch (e) {
         list.innerHTML = '<div class="history-empty">Failed to load history</div>';
     }
+}
+
+function renderHistory(data) {
+    const list = $("#historyList");
+
+    if (!data.length) {
+        list.innerHTML = '<div class="history-empty">No downloads yet</div>';
+        return;
+    }
+
+    list.innerHTML = "";
+    for (const entry of data.slice().reverse()) {
+        const item = document.createElement("div");
+        item.className = `history-item history-${entry.status}`;
+
+        const time = new Date(entry.time);
+        const timeStr = time.toLocaleDateString() + " " + time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        const titleEl = document.createElement("span");
+        titleEl.className = "history-title";
+        titleEl.textContent = entry.title || entry.url;
+        titleEl.title = entry.url;
+
+        const statusEl = document.createElement("span");
+        statusEl.className = `history-status history-status-${entry.status}`;
+        statusEl.textContent = entry.status === "success" ? "✓" : entry.status === "failed" ? "✗" : "!";
+
+        const timeEl = document.createElement("span");
+        timeEl.className = "history-time";
+        timeEl.textContent = timeStr;
+
+        item.appendChild(statusEl);
+        item.appendChild(titleEl);
+        item.appendChild(timeEl);
+
+        item.style.cursor = "pointer";
+        item.title = "Click to download again";
+        item.addEventListener("click", () => {
+            $("#urlInput").value = entry.url;
+            onUrlChange();
+            toggleHistory();
+            $("#urlInput").focus();
+        });
+
+        list.appendChild(item);
+    }
+}
+
+function filterHistory() {
+    const query = $("#historySearch").value.toLowerCase().trim();
+    if (!query) {
+        renderHistory(historyData);
+        return;
+    }
+    const filtered = historyData.filter(e =>
+        (e.title || "").toLowerCase().includes(query) ||
+        (e.url || "").toLowerCase().includes(query)
+    );
+    renderHistory(filtered);
+}
+
+function exportHistory() {
+    if (!historyData.length) {
+        showToast("No history to export", "info");
+        return;
+    }
+    const blob = new Blob([JSON.stringify(historyData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `videograb-history-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("History exported", "success");
 }
 
 // ── Shake animation ──

@@ -219,6 +219,8 @@ def download_worker(dl_id):
             sys.executable, "-m", "yt_dlp",
         ]
 
+        output_fmt = dl.get("output_format", "mp4")
+
         if is_audio_only:
             cmd.extend([
                 "-f", format_str,
@@ -228,7 +230,7 @@ def download_worker(dl_id):
         else:
             cmd.extend([
                 "-f", format_str,
-                "--merge-output-format", "mp4",
+                "--merge-output-format", output_fmt,
             ])
 
         cmd.extend([
@@ -266,6 +268,19 @@ def download_worker(dl_id):
             cmd.append("--yes-playlist")
         else:
             cmd.append("--no-playlist")
+
+        # Speed limit
+        speed_limit = dl.get("speed_limit", "")
+        if speed_limit:
+            cmd.extend(["--limit-rate", speed_limit])
+
+        # Proxy
+        proxy = dl.get("proxy", "")
+        if proxy:
+            cmd.extend(["--proxy", proxy])
+
+        # Embed thumbnail & metadata
+        cmd.extend(["--embed-thumbnail", "--embed-metadata"])
 
         kwargs = {}
         if platform.system() == "Windows":
@@ -379,6 +394,53 @@ def download_worker(dl_id):
         cleanup_old_downloads()
 
 
+# ── Start Single Download (shared by single & batch) ──
+def _start_single_download(url, save_path, use_cookies, fmt, cookie_browser,
+                           write_subs, sub_langs, no_cert_check, playlist,
+                           speed_limit, output_format, proxy):
+    os.makedirs(save_path, exist_ok=True)
+
+    # Save path preference
+    cfg = load_config()
+    cfg["savePath"] = save_path
+    save_config(cfg)
+
+    dl_id = str(int(time.time() * 1000)) + "-" + str(len(downloads))
+    icon, site = detect_type(url)
+
+    downloads[dl_id] = {
+        "url": url,
+        "save_path": save_path,
+        "site": site,
+        "icon": icon,
+        "use_cookies": use_cookies,
+        "format": fmt,
+        "cookie_browser": cookie_browser,
+        "write_subs": write_subs,
+        "sub_langs": sub_langs,
+        "no_cert_check": no_cert_check,
+        "playlist": playlist,
+        "speed_limit": speed_limit,
+        "output_format": output_format,
+        "proxy": proxy,
+        "cancelled": False,
+        "finished": False,
+        "proc": None,
+        "events": [],
+        "event_index": 0,
+    }
+
+    t = threading.Thread(target=download_worker, args=(dl_id,), daemon=True)
+    t.start()
+
+    return {
+        "id": dl_id,
+        "icon": icon,
+        "site": site,
+        "url": url,
+    }
+
+
 # ── Routes ──
 @app.route("/")
 def index():
@@ -418,55 +480,50 @@ def start_download():
     sub_langs = data.get("subLangs", "en")
     no_cert_check = data.get("noCertCheck", False)
     playlist = data.get("playlist", False)
+    speed_limit = data.get("speedLimit", "")
+    output_format = data.get("outputFormat", "mp4")
+    proxy = data.get("proxy", "").strip()
+
+    # Batch URL support
+    urls = data.get("urls")
+    if urls and isinstance(urls, list):
+        results = []
+        for u in urls:
+            u = u.strip()
+            if not u or not re.match(r"https?://", u, re.IGNORECASE):
+                continue
+            # Check duplicate
+            dup = any(not dl.get("finished") and dl.get("url") == u for dl in downloads.values())
+            if dup:
+                results.append({"url": u, "error": "Already downloading"})
+                continue
+            active = sum(1 for dl in downloads.values() if not dl.get("finished"))
+            if active >= MAX_CONCURRENT:
+                results.append({"url": u, "error": f"Max {MAX_CONCURRENT} concurrent"})
+                continue
+            results.append(_start_single_download(u, save_path, use_cookies, fmt, cookie_browser,
+                                                   write_subs, sub_langs, no_cert_check, playlist,
+                                                   speed_limit, output_format, proxy))
+        return jsonify({"results": results})
 
     if not url:
         return jsonify({"error": "URL is required"}), 400
     if not re.match(r"https?://", url, re.IGNORECASE):
         return jsonify({"error": "URL must start with http:// or https://"}), 400
 
+    # Check for duplicate active download
+    for dl in downloads.values():
+        if not dl.get("finished") and dl.get("url") == url:
+            return jsonify({"error": "This URL is already downloading"}), 409
+
     # Check concurrent limit
     active = sum(1 for dl in downloads.values() if not dl.get("finished"))
     if active >= MAX_CONCURRENT:
         return jsonify({"error": f"Max {MAX_CONCURRENT} concurrent downloads reached"}), 429
 
-    os.makedirs(save_path, exist_ok=True)
-
-    # Save path preference
-    cfg = load_config()
-    cfg["savePath"] = save_path
-    save_config(cfg)
-
-    dl_id = str(int(time.time() * 1000))
-    icon, site = detect_type(url)
-
-    downloads[dl_id] = {
-        "url": url,
-        "save_path": save_path,
-        "site": site,
-        "icon": icon,
-        "use_cookies": use_cookies,
-        "format": fmt,
-        "cookie_browser": cookie_browser,
-        "write_subs": write_subs,
-        "sub_langs": sub_langs,
-        "no_cert_check": no_cert_check,
-        "playlist": playlist,
-        "cancelled": False,
-        "finished": False,
-        "proc": None,
-        "events": [],
-        "event_index": 0,
-    }
-
-    t = threading.Thread(target=download_worker, args=(dl_id,), daemon=True)
-    t.start()
-
-    return jsonify({
-        "id": dl_id,
-        "icon": icon,
-        "site": site,
-        "url": url,
-    })
+    return jsonify(_start_single_download(url, save_path, use_cookies, fmt, cookie_browser,
+                                          write_subs, sub_langs, no_cert_check, playlist,
+                                          speed_limit, output_format, proxy))
 
 
 @app.route("/api/progress/<dl_id>")

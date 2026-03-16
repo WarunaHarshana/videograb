@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════
-   VideoGrab v4.0 — Dark Glassmorphism
+   VideoGrab v4.1 — Dark/Light Glassmorphism
    ══════════════════════════════════════ */
 
 :root {
@@ -848,4 +848,340 @@ input::placeholder {
     font-weight: 700;
     color: var(--accent);
     pointer-events: none;
+}
+
+/* ══════════════════════════════════════
+   Light Theme
+   ══════════════════════════════════════ */
+:root.light-theme {
+    --bg: #f2f2f7;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card-hover: rgba(255, 255, 255, 0.95);
+    --bg-input: rgba(0, 0, 0, 0.04);
+    --bg-input-focus: rgba(0, 0, 0, 0.06);
+    --border: rgba(0, 0, 0, 0.1);
+    --border-focus: rgba(99, 145, 255, 0.5);
+    --text: #1c1c1e;
+    --text-dim: #636366;
+    --text-subtle: #aeaeb2;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+:root.light-theme .bg-glow-1 {
+    background: radial-gradient(circle, rgba(99, 145, 255, 0.15) 0%, transparent 70%);
+}
+
+:root.light-theme .bg-glow-2 {
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+}
+
+:root.light-theme .option-group select option,
+:root.light-theme .browser-select option {
+    background: #f2f2f7;
+    color: #1c1c1e;
+}
+
+:root.light-theme .dl-progress-wrap {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+:root.light-theme .dl-site-name {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* ══════════════════════════════════════
+   Theme Toggle Button
+   ══════════════════════════════════════ */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-theme {
+    width: 36px;
+    height: 36px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px;
+    color: var(--text-dim);
+    backdrop-filter: blur(10px);
+}
+
+.btn-theme:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-focus);
+}
+
+/* ══════════════════════════════════════
+   Batch Mode
+   ══════════════════════════════════════ */
+.url-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.url-label-row label {
+    margin-bottom: 0;
+}
+
+.btn-batch-toggle {
+    padding: 4px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-batch-toggle:hover {
+    background: var(--bg-card-hover);
+    color: var(--text);
+}
+
+.btn-batch-toggle.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+#batchUrlInput {
+    width: 100%;
+    min-height: 100px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 12px 14px;
+    resize: vertical;
+    outline: none;
+    transition: var(--transition);
+}
+
+#batchUrlInput:focus {
+    border-color: var(--border-focus);
+    background: var(--bg-input-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+#batchUrlInput::placeholder {
+    color: var(--text-subtle);
+}
+
+/* ══════════════════════════════════════
+   Settings Panel
+   ══════════════════════════════════════ */
+.settings-toggle-row {
+    margin-bottom: 0;
+}
+
+.btn-settings-toggle {
+    background: none;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 0;
+    gap: 6px;
+}
+
+.btn-settings-toggle:hover {
+    color: var(--text);
+}
+
+.settings-arrow {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.settings-panel {
+    padding: 16px 0;
+    margin-bottom: 16px;
+    border-top: 1px solid var(--border);
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.sub-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.cookie-toggle.compact .toggle-slider {
+    width: 32px;
+    height: 18px;
+}
+
+.cookie-toggle.compact .toggle-slider::after {
+    width: 12px;
+    height: 12px;
+}
+
+.cookie-toggle.compact input:checked + .toggle-slider::after {
+    transform: translateX(14px);
+}
+
+/* ══════════════════════════════════════
+   Toast Notifications
+   ══════════════════════════════════════ */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 360px;
+}
+
+.toast {
+    padding: 12px 16px;
+    border-radius: var(--radius-xs);
+    font-size: 13px;
+    font-weight: 500;
+    color: white;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transform: translateX(120%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.hide {
+    transform: translateX(120%);
+}
+
+.toast-info {
+    background: rgba(99, 145, 255, 0.9);
+}
+
+.toast-success {
+    background: rgba(48, 209, 88, 0.9);
+}
+
+.toast-warning {
+    background: rgba(255, 159, 10, 0.9);
+}
+
+.toast-error {
+    background: rgba(255, 69, 58, 0.9);
+}
+
+/* ══════════════════════════════════════
+   History Search & Export
+   ══════════════════════════════════════ */
+.history-search {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px 10px;
+    width: 160px;
+    outline: none;
+    transition: var(--transition);
+}
+
+.history-search:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.history-search::placeholder {
+    color: var(--text-subtle);
+}
+
+.btn-export {
+    padding: 6px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    color: var(--accent);
+    font-size: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.btn-export:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-focus);
+}
+
+/* ══════════════════════════════════════
+   Improved Mobile Responsive
+   ══════════════════════════════════════ */
+@media (max-width: 600px) {
+    .container { padding: 24px 16px 40px; }
+    .header { flex-direction: column; gap: 16px; }
+    .header-right { align-self: flex-start; }
+    .input-card { padding: 20px; }
+    .options-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .action-row { flex-direction: column; }
+    .btn-download { width: 100%; }
+    .dl-stats { flex-wrap: wrap; gap: 8px; }
+    .dl-top { flex-wrap: wrap; }
+    .dl-title { min-width: 0; flex-basis: 100%; order: 3; margin-left: 0; margin-top: 4px; }
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+    .header-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .history-search { width: 100%; }
+    .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .toast-container {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        max-width: none;
+    }
+
+    /* Touch-friendly: 44px min tap targets */
+    .btn-paste,
+    .btn-folder {
+        min-width: 48px;
+        min-height: 48px;
+    }
+    .btn-download {
+        min-height: 48px;
+    }
+}
+
+@media (max-width: 400px) {
+    .logo h1 { font-size: 22px; }
+    .logo-icon { width: 44px; height: 44px; font-size: 24px; }
+    .tagline { font-size: 12px; }
 }

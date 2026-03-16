@@ -10,3 +10,5 @@ dist/
 build/
 .vscode/
 .idea/
+*.drawio
+*.drawio.png
