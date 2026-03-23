@@ -111,6 +111,15 @@ def save_history(url, title, status):
         pass
 
 
+def clear_history():
+    """Clear all download history."""
+    try:
+        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, indent=2, ensure_ascii=False)
+    except OSError:
+        pass
+
+
 # ── Tools Check ──
 def check_tools():
     tools = {}
@@ -631,6 +640,12 @@ def browse_folder():
 @app.route("/api/history")
 def get_history():
     return jsonify(load_history())
+
+
+@app.route("/api/history/clear", methods=["POST"])
+def clear_history_route():
+    clear_history()
+    return jsonify({"status": "cleared"})
 
 
 # ── Main ──

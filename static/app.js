@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#themeBtn").addEventListener("click", toggleTheme);
     $("#historySearch").addEventListener("input", filterHistory);
     $("#exportHistoryBtn").addEventListener("click", exportHistory);
+    $("#clearHistoryBtn").addEventListener("click", clearHistory);
 
     // Keyboard shortcuts
     document.addEventListener("keydown", handleKeyboard);
@@ -814,6 +815,34 @@ function exportHistory() {
     a.click();
     URL.revokeObjectURL(url);
     showToast("History exported", "success");
+}
+
+async function clearHistory() {
+    if (!historyData.length) {
+        showToast("History is already empty", "info");
+        return;
+    }
+
+    const confirmed = window.confirm("Clear all download history? This cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch("/api/history/clear", { method: "POST" });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showToast(data.error || "Failed to clear history", "error");
+            return;
+        }
+
+        historyData = [];
+        $("#historySearch").value = "";
+        renderHistory(historyData);
+        showToast("History cleared", "success");
+    } catch (e) {
+        console.error("Failed to clear history:", e);
+        showToast("Failed to clear history", "error");
+    }
 }
 
 // ── Shake animation ──
