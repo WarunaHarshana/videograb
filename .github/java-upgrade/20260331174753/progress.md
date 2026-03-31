@@ -91,30 +91,35 @@
     - Result: SUCCESS (Maven 4.0.0-rc-4, Java 25.0.2 detected)
     - Notes: appmod-install-maven failed due broken upstream URL; manual install used.
   - **Deferred Work**: None
-  - **Commit**: Pending
+  - **Commit**: cb0cc6b - Step 1: Setup Environment - Compile: N/A
 
 - **Step 2: Setup Baseline**
-  - **Status**: 🔘 Not Started
+  - **Status**: ❗ Failed
   - **Changes Made**:
-    - None
+    - Attempted baseline compile with current project settings
+    - Confirmed dependency resolution failure is reproducible
+    - Captured baseline as pre-existing build failure
   - **Review Code Changes**:
     - Sufficiency: ✅ All required changes present
     - Necessity: ✅ All changes necessary
       - Functional Behavior: ✅ Preserved
       - Security Controls: ✅ Preserved
   - **Verification**:
-    - Command: `mvn clean test-compile -q && mvn clean test -q`
-    - JDK: C:\Users\warun\.jdks\jbr_dcevm-11.0.16\bin
-    - Build tool: <to be installed>
-    - Result: Not run yet
-    - Notes: None
-  - **Deferred Work**: None
+    - Command: `$env:JAVA_HOME='C:\Users\warun\.jdks\openjdk-25.0.2'; $env:Path="$env:JAVA_HOME\bin;$HOME\.maven\apache-maven-4.0.0-rc-4\bin;$env:Path"; mvn -f pom.xml -U clean test-compile -q`
+    - JDK: C:\Users\warun\.jdks\openjdk-25.0.2\bin
+    - Build tool: C:\Users\warun\.maven\apache-maven-4.0.0-rc-4\bin\mvn.cmd
+    - Result: FAILURE - `org.glassfish:jakarta.json:1.1.4` not found in Maven Central
+    - Notes: Maven 4 cannot run on JDK 11; baseline executed on JDK 25 with unchanged project sources.
+  - **Deferred Work**: Resolve dependency in Step 3.
   - **Commit**: Pending
 
 - **Step 3: Upgrade Java Target to 25**
-  - **Status**: 🔘 Not Started
+  - **Status**: ✅ Completed
   - **Changes Made**:
-    - None
+    - Updated `maven.compiler.release` from 11 to 25
+    - Upgraded `org.glassfish:jakarta.json` from 1.1.4 to 2.0.1
+    - Upgraded `maven-shade-plugin` from 3.2.4 to 3.6.1
+    - Recompiled project successfully with JDK 25
   - **Review Code Changes**:
     - Sufficiency: ✅ All required changes present
     - Necessity: ✅ All changes necessary
@@ -123,14 +128,14 @@
   - **Verification**:
     - Command: `mvn clean test-compile -q`
     - JDK: C:\Users\warun\.jdks\openjdk-25.0.2\bin
-    - Build tool: <to be installed>
-    - Result: Not run yet
-    - Notes: None
+    - Build tool: C:\Users\warun\.maven\apache-maven-4.0.0-rc-4\bin\mvn.cmd
+    - Result: SUCCESS - main and test sources compiled
+    - Notes: Maven runtime emits non-blocking JDK 25 `sun.misc.Unsafe` warning.
   - **Deferred Work**: None
   - **Commit**: Pending
 
 - **Step 4: Final Validation**
-  - **Status**: 🔘 Not Started
+  - **Status**: ⏳ In Progress
   - **Changes Made**:
     - None
   - **Review Code Changes**:
