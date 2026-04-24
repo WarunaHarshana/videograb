@@ -2,6 +2,14 @@
 
 VideoGrab is a Java Swing desktop application for downloading videos with yt-dlp.
 
+## Download
+
+Windows users can download the latest packaged app from the GitHub release:
+
+- [VideoGrab-1.0.0-windows.zip](https://github.com/WarunaHarshana/videograb/releases/download/v1.0.0/VideoGrab-1.0.0-windows.zip)
+
+Extract the zip file, then run `VideoGrab.exe` from the extracted `VideoGrab` folder.
+
 ## Features
 
 - Universal site support through yt-dlp
