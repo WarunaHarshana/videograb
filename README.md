@@ -16,11 +16,11 @@ VideoGrab is a Java Swing desktop application for downloading videos with yt-dlp
 
 ## Requirements
 
-- Java 21+
-- Maven 3.8+
-- python on PATH
-- yt-dlp on PATH
-- ffmpeg on PATH
+- Java 21+ to run the JAR, or a packaged app from `scripts/build-exe.ps1`
+- JDK 21+ to build the Windows app image
+- Maven 3.8+ if you want to use the Maven build
+- `yt-dlp` and `ffmpeg`, either on PATH or bundled in `tools/`
+- Python is optional when `yt-dlp.exe` is bundled or available on PATH
 
 You can also bundle tools locally (no global PATH required):
 
@@ -32,6 +32,22 @@ You can also bundle tools locally (no global PATH required):
 ```bash
 mvn -q -DskipTests compile
 ```
+
+## Build Windows EXE
+
+On Windows with JDK 21+ installed:
+
+```powershell
+.\scripts\build-exe.ps1
+```
+
+The runnable app is created at:
+
+```text
+dist\VideoGrab\VideoGrab.exe
+```
+
+The build script bundles `tools\yt-dlp.exe` and `tools\ffmpeg\bin\ffmpeg.exe` into the app image when those files exist.
 
 ## Run
 
@@ -71,7 +87,8 @@ videograb/
 
 ## Notes
 
-- Runtime user state is stored in config.json and history.json.
+- Runtime user state is stored in `%APPDATA%\VideoGrab\config.json` and `%APPDATA%\VideoGrab\history.json`.
+- To keep state beside the executable for portable use, run with `-Dvideograb.portable=true`.
 - On very new JDKs (e.g., 24+), VideoGrab disables FlatLaf optional native helpers by default for compatibility.
 - If you want FlatLaf native integration enabled, run with: `--enable-native-access=ALL-UNNAMED`.
 

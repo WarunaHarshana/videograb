@@ -355,7 +355,7 @@ public class InputPanel extends JPanel {
             String platform = URLDetector.detectType(url);
             urlField.setToolTipText("Detected: " + platform);
 
-            if (isValidHttpUrl(url)) {
+            if (areEnteredUrlsValid(url)) {
                 urlField.setBackground(Color.WHITE);
             } else {
                 urlField.setBackground(new Color(255, 230, 230)); // Light red
@@ -412,9 +412,13 @@ public class InputPanel extends JPanel {
     }
 
     public void pasteIntoUrlField() {
-        if (!(KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner() instanceof JTextComponent)) {
-            urlField.requestFocusInWindow();
+        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        if (focusOwner instanceof JTextComponent && focusOwner != urlField) {
+            ((JTextComponent) focusOwner).paste();
+            return;
         }
+
+        urlField.requestFocusInWindow();
         urlField.paste();
     }
 
@@ -600,6 +604,25 @@ public class InputPanel extends JPanel {
         } catch (URISyntaxException e) {
             return false;
         }
+    }
+
+    private boolean areEnteredUrlsValid(String value) {
+        if (!batchCheckbox.isSelected()) {
+            return isValidHttpUrl(value);
+        }
+
+        boolean sawUrl = false;
+        for (String line : value.split("\\r?\\n")) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            sawUrl = true;
+            if (!isValidHttpUrl(trimmed)) {
+                return false;
+            }
+        }
+        return sawUrl;
     }
 
     /**

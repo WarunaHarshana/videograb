@@ -11,7 +11,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URI;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -358,6 +357,16 @@ public class DownloadsPanel extends JPanel {
             this.download.setSize(download.getSize());
             this.download.setFilename(download.getFilename());
             this.download.setFormat(download.getFormat());
+            this.download.setSavePath(download.getSavePath());
+            this.download.setUseCookies(download.isUseCookies());
+            this.download.setCookieBrowser(download.getCookieBrowser());
+            this.download.setPlaylist(download.isPlaylist());
+            this.download.setWriteSubs(download.isWriteSubs());
+            this.download.setSubLangs(download.getSubLangs());
+            this.download.setNoCertCheck(download.isNoCertCheck());
+            this.download.setSpeedLimit(download.getSpeedLimit());
+            this.download.setOutputFormat(download.getOutputFormat());
+            this.download.setProxy(download.getProxy());
             this.download.setAddedAt(download.getAddedAt());
             this.download.setStartedAt(download.getStartedAt());
             this.download.setCompletedAt(download.getCompletedAt());
@@ -439,7 +448,7 @@ public class DownloadsPanel extends JPanel {
             );
             cancelButton.setEnabled(!isFinished);
             retryButton.setVisible(Constants.STATUS_FAILED.equals(status));
-            retryButton.setEnabled(!isFinished);
+            retryButton.setEnabled(Constants.STATUS_FAILED.equals(status));
         }
 
         private void updatePreview() {
@@ -585,7 +594,7 @@ public class DownloadsPanel extends JPanel {
                 }
                 return null;
             }
-            return ImageIO.read(new URL(source));
+            return ImageIO.read(URI.create(source).toURL());
         } catch (Exception ignored) {
             return null;
         }

@@ -205,7 +205,7 @@ public class HistoryPanel extends JPanel {
             try {
                 historyService.saveHistory();
                 java.nio.file.Files.copy(
-                    java.nio.file.Paths.get(Constants.HISTORY_FILE),
+                    historyService.getHistoryPath(),
                     selectedFile.toPath(),
                     StandardCopyOption.REPLACE_EXISTING
                 );

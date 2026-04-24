@@ -40,6 +40,7 @@ public class DownloadService {
     private final Map<String, Process> activeProcesses;
     private final Map<String, Download> trackedDownloads;
     private final Set<String> pausedDownloads;
+    private volatile int maxConcurrentDownloads;
     private final String windowsShell;
     private final List<String> ytDlpBaseCommand;
     private final String ffmpegCommand;
@@ -64,12 +65,14 @@ public class DownloadService {
     }
 
     private DownloadService(int maxConcurrentDownloads, HistoryService historyService, ConfigService configService) {
+        int normalizedMax = Math.max(1, maxConcurrentDownloads);
+        this.maxConcurrentDownloads = normalizedMax;
         this.executorService = Executors.newCachedThreadPool(r -> {
             Thread t = new Thread(r);
             t.setDaemon(true);
             return t;
         });
-        this.concurrencySemaphore = new Semaphore(maxConcurrentDownloads);
+        this.concurrencySemaphore = new Semaphore(normalizedMax);
         this.historyService = historyService != null ? historyService : new HistoryService();
         this.configService = configService != null ? configService : new ConfigService();
         this.eventQueue = new LinkedBlockingQueue<>();
@@ -836,26 +839,27 @@ public class DownloadService {
     }
 
     public int getMaxConcurrentDownloads() {
-        return concurrencySemaphore.availablePermits() + activeProcesses.size();
+        return maxConcurrentDownloads;
     }
 
     public synchronized void setMaxConcurrentDownloads(int newMaxConcurrent) {
         int normalized = Math.max(1, newMaxConcurrent);
-        int active = activeProcesses.size();
-        int currentMax = getMaxConcurrentDownloads();
+        int currentMax = maxConcurrentDownloads;
 
         if (normalized == currentMax) {
             return;
         }
 
-        int targetAvailable = Math.max(0, normalized - active);
         int currentAvailable = concurrencySemaphore.availablePermits();
+        int acquired = Math.max(0, currentMax - currentAvailable);
+        int targetAvailable = Math.max(0, normalized - acquired);
 
         if (targetAvailable > currentAvailable) {
             concurrencySemaphore.release(targetAvailable - currentAvailable);
         } else if (targetAvailable < currentAvailable) {
             concurrencySemaphore.acquireUninterruptibly(currentAvailable - targetAvailable);
         }
+        maxConcurrentDownloads = normalized;
     }
 
     public boolean isPauseResumeSupported() {

@@ -1,6 +1,7 @@
 package com.videograb.service;
 
 import com.videograb.model.Download;
+import com.videograb.util.AppPaths;
 import com.videograb.util.Constants;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +12,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -24,11 +24,13 @@ import java.util.List;
  */
 public class HistoryService {
     private static final String HISTORY_FILE = Constants.HISTORY_FILE;
+    private final Path historyPath;
     private final ObjectMapper objectMapper;
     private final Object historyLock;
     private List<Download> history;
 
     public HistoryService() {
+        this.historyPath = AppPaths.dataFile(HISTORY_FILE);
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
         this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -42,7 +44,6 @@ public class HistoryService {
      */
     public void loadHistory() {
         synchronized (historyLock) {
-            Path historyPath = Paths.get(HISTORY_FILE);
             if (Files.exists(historyPath)) {
                 try (InputStream input = new FileInputStream(historyPath.toFile())) {
                     JsonNode root = objectMapper.readTree(input);
@@ -116,7 +117,6 @@ public class HistoryService {
      */
     public void saveHistory() {
         synchronized (historyLock) {
-            Path historyPath = Paths.get(HISTORY_FILE);
             try {
                 Path parent = historyPath.getParent();
                 if (parent != null) {
@@ -185,6 +185,10 @@ public class HistoryService {
         synchronized (historyLock) {
             return new ArrayList<>(history); // Return copy
         }
+    }
+
+    public Path getHistoryPath() {
+        return historyPath;
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.videograb.service;
 
+import com.videograb.util.AppPaths;
 import com.videograb.util.Constants;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -16,10 +16,12 @@ import java.util.Map;
  */
 public class ConfigService {
     private static final String CONFIG_FILE = "config.json";
+    private final Path configPath;
     private final ObjectMapper objectMapper;
     private Map<String, Object> properties;
 
     public ConfigService() {
+        this.configPath = AppPaths.dataFile(CONFIG_FILE);
         this.objectMapper = new ObjectMapper();
         this.properties = new LinkedHashMap<>();
         loadConfig();
@@ -29,7 +31,6 @@ public class ConfigService {
      * Load configuration from file
      */
     public void loadConfig() {
-        Path configPath = Paths.get(CONFIG_FILE);
         if (Files.exists(configPath)) {
             try (InputStream input = new FileInputStream(configPath.toFile())) {
                 Map<String, Object> loaded = objectMapper.readValue(input, new TypeReference<Map<String, Object>>() {});
@@ -77,9 +78,15 @@ public class ConfigService {
      * Save configuration to file
      */
     public void saveConfig() {
-        Path configPath = Paths.get(CONFIG_FILE);
-        try (OutputStream output = new FileOutputStream(configPath.toFile())) {
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(output, properties);
+        try {
+            Path parent = configPath.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+
+            try (OutputStream output = new FileOutputStream(configPath.toFile())) {
+                objectMapper.writerWithDefaultPrettyPrinter().writeValue(output, properties);
+            }
         } catch (IOException e) {
             System.err.println("Error saving config: " + e.getMessage());
         }
